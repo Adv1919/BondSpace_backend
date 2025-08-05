@@ -1,4 +1,5 @@
 import express from "express";
+import path from 'path';
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
@@ -20,10 +21,19 @@ import finalmatchRoutes from './routes/finalmatch.route.js';
 dotenv.config();
 
 const app = express();
-
+const allowedOrigin =[
+  "http://localhost:5173",
+  "https://bondspacefrontend.vercel.app/",
+];
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigin.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );
@@ -65,12 +75,17 @@ const server = http.createServer(app);
 // Initialize Socket.IO server
 const io = new IOServer(server, {
   cors: {
-    origin: "http://localhost:5173", 
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigin.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by Socket.IO CORS"));
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true,
-  },
+  }
 });
-
 // Socket.IO connection handler
 io.on("connection", (socket) => {
 
@@ -114,7 +129,7 @@ mongoose
   .then(() => {
     console.log("MongoDB connected.");
 
-    // Use `server.listen` instead of `app.listen` for Socket.IO support
+    // Use server.listen instead of app.listen for Socket.IO support
     server.listen(process.env.PORT || 5000, () => {
       console.log("🚀 Server running on port " + (process.env.PORT || 5000));
     });
