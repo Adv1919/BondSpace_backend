@@ -16,18 +16,20 @@ import roomAllocationRoutes from "./routes/roomAllocation.routes.js";
 import moodboardRoutes from './routes/moodboard.routes.js';
 import roomsRouter from "./routes/room.routes.js";
 
-
 import finalmatchRoutes from './routes/finalmatch.route.js';
 dotenv.config();
 
 const app = express();
-const allowedOrigin =[
+
+const allowedOrigin = [
   "http://localhost:5173",
-  "https://bondspacefrontend.vercel.app/",
+  "https://bondspacefrontend.vercel.app",
 ];
+
 app.use(
   cors({
     origin: function (origin, callback) {
+      console.log("Request origin:", origin);
       if (!origin || allowedOrigin.includes(origin)) {
         callback(null, true);
       } else {
@@ -37,6 +39,7 @@ app.use(
     credentials: true,
   })
 );
+
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {
@@ -55,7 +58,6 @@ app.use("/api/rooms", roomsRouter);
 
 app.use("/api/admin", adminRoutes);
 app.use('/api/moodboard', moodboardRoutes);
-
 
 // -------- Centralized Error Handling Middleware --------
 app.use((err, req, res, next) => {
@@ -76,6 +78,7 @@ const server = http.createServer(app);
 const io = new IOServer(server, {
   cors: {
     origin: function (origin, callback) {
+      console.log("Socket.IO Request origin:", origin);
       if (!origin || allowedOrigin.includes(origin)) {
         callback(null, true);
       } else {
@@ -86,10 +89,9 @@ const io = new IOServer(server, {
     credentials: true,
   }
 });
+
 // Socket.IO connection handler
 io.on("connection", (socket) => {
-
-  
   socket.on("joinRoom", (matchId) => {
     socket.join(matchId);
   });
@@ -98,7 +100,7 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", async (data) => {
     const { matchId, message, senderUserId, senderName } = data;
 
-    if (!data.senderUserId) {
+    if (!senderUserId) {
       console.warn("Warning: senderUserId missing in received message data.");
     }
 
@@ -111,7 +113,6 @@ io.on("connection", (socket) => {
       createdAt: new Date(),
     };
 
-    
     socket.to(matchId).emit("receiveMessage", chatMsg);
   });
 
@@ -120,6 +121,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    // Optional: handle disconnect logic here
   });
 });
 
